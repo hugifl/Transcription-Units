@@ -1,0 +1,215 @@
+Unrepresented_Genes	Direction	number_of_overlapping_TUs	overlapping_TUs	overlapping_TUs_directions	number_of_spanning_TUs	spanning_TUs	spanning_TUs_directions	overlaps a gene in the TU	TU contains only genes that are not in gene_df
+sokE	-	1	hokE	+	1	hokE	+	0	0
+yoeJ	-	0			0			0	0
+b4247	+	2	pyrLBI, yjgH	-, -	0			0	0
+b1052	-	2	mdtG, msyB	-, -	0			0	0
+b3007	-	2	exbBD, metC	-, +	0			0	0
+b0725	+	3	sdhCDAB-sucABCD-sdhX, sucAB, sucABCD-sdhX	+, +, +	1	sdhCDAB-sucABCD-sdhX	+	1	0
+ryfB	-	1	shoB	-	0			0	0
+b2651	+	0			0			0	0
+ykiB	-	0			0			0	0
+b2084	-	1	yegRZ	-	1	yegRZ	-	1	0
+b0105	-	1	guaC	+	0			0	0
+ygiA	+	1	tolC-ygiBC	+	1	tolC-ygiBC	+	1	0
+b1425	-	1	opgD	+	0			0	0
+b4700	+	1	hokE	+	1	hokE	+	0	0
+b4250	+	1	bdcR	+	1	bdcR	+	1	0
+b1354	+	1	ydaGF	-	1	ydaGF	-	1	0
+b3254	-	0			0			0	0
+yliL	+	1	rybA-mntS	-	0			0	0
+b2653	-	1	ileY	-	0			0	0
+b0538	+	3	exoD, intD, peaD	-, -, +	0			0	0
+ybfK	+	1	speF-potE	-	0			0	0
+b2191	+	1	yejO	-	1	yejO	-	0	1
+b0165	-	2	dapD, yaeI	-, -	0			0	0
+b1437	-	1	hicAB	+	1	hicAB	+	1	0
+b0017	-	1	insL1	+	1	insL1	+	1	0
+sraF	+	1	alx	+	1	alx	+	0	0
+yjgW	+	1	yjgX	-	1	yjgX	-	1	0
+b1364	+	2	trkG, ynaK-ydaY	+, +	0			0	0
+b3975	-	0			0			0	0
+ycdF	+	1	ymdF	+	0			0	0
+b3004	+	2	exbBD, exbD	-, -	2	exbBD, exbD	-, -	1	0
+b0609	+	1	rnk	-	0			0	0
+ybhU	-	1	uvrB	+	0			0	0
+b2596	+	1	raiAZ	+	0			0	0
+b0309	-	1	ykgEFG	+	0			0	0
+fruL	+	0			0			0	0
+b1903	+	1	yecJ	-	0			0	0
+b0100	-	2	coaE-zapD-yacG, yacG	-, -	0			0	0
+b0701	+	1	rhsC-ybfB	+	1	rhsC-ybfB	+	1	0
+b1367	+	0			0			0	0
+tisA	+	1	tisB	+	1	tisB	+	1	0
+bhsB	+	1	bhsA	+	0			0	0
+ykfO	+	1	gloB	-	1	gloB	-	1	0
+ynfQ	-	1	ynfN	-	0			0	0
+yshB	-	0			0			0	0
+ftsO	+	3	ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, mraZW-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, rsmH-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	+, +, +	3	ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, mraZW-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, rsmH-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC	+, +, +	1	0
+ascrp	-	1	crp	+	1	crp	+	1	0
+rdlA	+	1	ldrA	-	1	ldrA	-	0	0
+rbsZ	+	1	rbsDACBKR	+	1	rbsDACBKR	+	1	0
+uhpU	-	2	ade, uhpT	+, -	0			0	0
+timP	+	1	ryfA	+	1	ryfA	+	1	0
+yoaK	+	0			0			0	0
+asompR	+	2	greB, ompR-envZ	+, -	0			0	0
+evgL	+	1	evgAS	+	1	evgAS	+	1	0
+yqiD	-	0			0			0	0
+ymgK	-	0			0			0	0
+ytgB	+	1	pepA	-	1	pepA	-	0	0
+yqfH	-	1	idi	+	1	idi	+	0	0
+ykiD	+	1	ykiA	+	0			0	0
+yriA	-	0			0			0	0
+yncP	+	1	hokB	-	0			0	0
+ynfR	-	1	ynfN	-	1	ynfN	-	0	0
+yddY	-	0			0			0	0
+ynaL	+	0			0			0	0
+yhgO	-	0			0			0	0
+ychT	+	1	ychE	+	1	ychE	+	0	0
+ykgV	-	1	yagN	-	0			0	0
+ytcA	-	0			0			0	0
+ybjH	-	0			0			0	0
+ythB	+	2	nanCMS, nanS	-, -	0			0	0
+yqgH	-	0			0			0	0
+ybgV	-	1	gltA	-	1	gltA	-	0	0
+yrhD	+	0			0			0	0
+aaaD	+	2	nohD, tfaD	+, +	0			0	0
+ysaC	-	0			0			0	0
+baxL	-	1	bax	-	1	bax	-	1	0
+yoaL	-	1	yoaE	-	1	yoaE	-	1	0
+argL	-	2	argF, argF-xynR	-, -	0			0	0
+ykfN	-	0			0			0	0
+psaA	+	0			0			0	0
+spfP	+	1	spf	+	1	spf	+	1	0
+ypeD	-	1	mntH	-	0			0	0
+yoeG	-	0			0			0	0
+pmrR	+	1	basRS	-	0			0	0
+yidD	+	1	rpmH-rnpA	+	0			0	0
+yjhY	-	0			0			0	0
+pawZ	+	0			0			0	0
+yibU	+	0			0			0	0
+ykfK	-	0			0			0	0
+oweE	+	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP	+	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP	+	1	0
+ysaD	+	0			0			0	0
+ykgP	-	0			0			0	0
+yrdE	+	0			0			0	0
+kilS	-	0			0			0	0
+ymgN	+	1	pliG	-	1	pliG	-	1	0
+ylbI	+	0			0			0	0
+yeeH	-	0			0			0	0
+yjhZ	-	0			0			0	0
+yoeD	-	1	yoeF	+	0			0	0
+yicT	+	1	yicJI	-	1	yicJI	-	0	0
+ykgQ	+	0			0			0	0
+aaaE	+	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP	+	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP	+	1	0
+yidC	+	0			0			0	0
+asphoP	+	1	phoPQ	-	1	phoPQ	-	1	0
+ytiE	-	0			0			0	0
+rng	-	0			0			0	0
+ydgU	+	0			0			0	0
+yhdE	-	0			0			0	0
+yibW	+	0			0			0	0
+ykfL	-	1	yafY-ykfBF-yafX-ykfGH-yafW-ykfI	-	0			0	0
+yibS	+	0			0			0	0
+sokA	+	0			0			0	0
+xisD	-	1	intD	-	1	intD	-	1	0
+mokA	-	2	hokA, insJ	-, +	1	hokA	-	1	0
+aceK-int	+	2	aceBAK, aceK	+, +	2	aceBAK, aceK	+, +	1	0
+ybfI	-	0			0			0	0
+ttcC	-	0			0			0	0
+yrdF	+	0			0			0	0
+yoeH	-	0			0			0	0
+cydH	-	0			0			0	0
+yjdQ	-	0			0			0	0
+ypjI	+	0			0			0	0
+dbpA	+	0			0			0	0
+yqcG	+	2	queE, ygcG	-, +	0			0	0
+ypdK	+	0			0			0	0
+yjbT	-	0			0			0	0
+insH21	+	0			0			0	0
+yodE	-	0			0			0	0
+ibsB	-	1	sibB	+	1	sibB	+	1	0
+ibsE	+	1	sibE	-	1	sibE	-	1	0
+insB9	-	0			0			0	0
+ibsA	-	1	sibA	+	1	sibA	+	1	0
+ytjE	+	1	arcA	-	1	arcA	-	0	0
+ftsN	-	0			0			0	0
+iroK	-	2	hcaR, hcaT	-, -	1	hcaR	-	1	0
+insA9	-	0			0			0	0
+eyeA	+	0			0			0	0
+yrfJ	-	1	argD	-	1	argD	-	1	0
+yifL	+	1	yifL-dapF-yigA-xerC-yigB	+	1	yifL-dapF-yigA-xerC-yigB	+	0	1
+xylZ	-	1	xylAB	-	1	xylAB	-	1	0
+ynhH	+	1	pykF	+	1	pykF	+	0	0
+ytiA	-	2	yjiK, yjiML	-, -	0			0	0
+ykfM	-	0			0			0	0
+allZ	+	1	allR	+	0			0	0
+zbiJ	-	1	hcxB	+	0			0	0
+ymcF	+	1	ymcE-gnsA	+	0			0	0
+yohP	+	0			0			0	0
+ysgD	+	1	corA	+	1	corA	+	0	0
+pssL	+	1	pssA	+	1	pssA	+	1	0
+ysdD	+	1	rpmH-rnpA	+	0			0	0
+ymgL	-	0			0			0	0
+ymiB	+	1	pdeR	-	0			0	0
+yojO	+	1	napFDAGHBC	-	0			0	0
+yibY	-	1	rfaDFCL	+	1	rfaDFCL	+	1	0
+yecV	-	1	argS	+	0			0	0
+yqfI	+	0			0			0	0
+ymgI	-	0			0			0	0
+yaaY	+	2	ribF-ileS-lspA-fkpB-ispH, rpsT	+, -	0			0	0
+yriB	-	0			0			0	0
+mgtT	+	2	mgrR, mgtS	-, +	0			0	0
+ynfS	+	0			0			0	0
+timR	-	0			0			0	0
+ylcJ	+	1	ybcK	+	0			0	0
+yobI	-	1	yebB	+	1	yebB	+	0	0
+ylcH	+	1	ybcN-ninE-ybcO-rusA-ylcG	+	1	ybcN-ninE-ybcO-rusA-ylcG	+	1	0
+yoaJ	+	0			0			0	0
+yhgP	-	0			0			0	0
+ymiD	+	1	pdeR	-	0			0	0
+yneP	+	2	ydeM, ydeNM	-, -	0			0	0
+yahV	+	1	pdeL	+	0			0	0
+ythA	+	0			0			0	0
+yqhJ	+	1	yghED	-	1	yghED	-	1	0
+ybiE	+	0			0			0	0
+ynaM	-	0			0			0	0
+yacM	+	0			0			0	0
+yibV	+	0			0			0	0
+ytgA	+	1	pepA	-	0			0	0
+yfiS	+	0			0			0	0
+yadX	+	1	clcA	+	0			0	0
+ymgM	+	1	cvrA	-	0			0	0
+ykgS	+	0			0			0	0
+ypaB	-	0			0			0	0
+yicU	-	1	yicL	+	1	yicL	+	1	0
+yoaM	-	1	nrdAB-yfaE	+	1	nrdAB-yfaE	+	1	0
+yqhI	-	1	yghX	-	0			0	0
+ymdG	+	0			0			0	0
+ymgJ	+	0			0			0	0
+yrdG	-	2	arfA, mscL	-, +	1	arfA	-	1	0
+ytcB	+	0			0			0	0
+ysaE	+	1	hokA	-	0			0	0
+ynfU	+	0			0			0	0
+yoeI	-	1	plaP	-	0			0	0
+yecU	+	1	yecF	+	0			0	0
+yldA	-	0			0			0	0
+ynbG	-	0			0			0	0
+ylcI	-	0			0			0	0
+yhiY	-	0			0			0	0
+ynaN	+	1	zntB	+	0			0	0
+ykiC	+	2	yaiP, yaiS	-, -	0			0	0
+yqeL	-	0			0			0	0
+ybgU	-	1	gltA	-	0			0	0
+yibX	-	1	rfaDFCL	+	1	rfaDFCL	+	1	0
+yqiM	+	1	yqjA-mzrA	+	1	yqjA-mzrA	+	0	0
+yljB	+	1	clpS	+	0			0	0
+yncO	-	1	rhsE-ydcD	+	0			0	0
+yadW	+	1	erpA	+	0			0	0
+yqfG	+	1	idi	+	0			0	0
+yjbS	-	0			0			0	0
+ysdE	-	0			0			0	0
+ykiE	+	0			0			0	0
+yqgG	-	2	yqgB, yqgC	-, +	0			0	0
+ytiB	-	1	yaiT	+	1	yaiT	+	0	1
+rzoQ	-	1	essQ-ydfR-rrrQ-rzpQ	-	1	essQ-ydfR-rrrQ-rzpQ	-	1	0
+ygdT	-	0			0			0	0

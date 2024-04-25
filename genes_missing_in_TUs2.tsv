@@ -1,0 +1,214 @@
+Unrepresented_Genes	number_of_overlapping_TUs	overlapping_TUs
+sokE	1	hokE
+yoeJ	0	
+b4247	3	pyrLBI_1, pyrLBI_2, yjgH
+b1052	2	msyB, mdtG
+b3007	2	metC, exbBD
+b0725	3	sucABCD-sdhX, sdhCDAB-sucABCD-sdhX, sucAB
+ryfB	1	shoB
+b2651	0	
+ykiB	0	
+b2084	1	yegRZ
+b0105	1	guaC
+ygiA	4	tolC-ygiBC_1, tolC-ygiBC_2, tolC-ygiBC_3, tolC-ygiBC_4
+b1425	4	opgD_1, opgD_2, opgD_3, opgD_4
+b4700	1	hokE
+b4250	1	bdcR_1
+b1354	1	ydaGF
+b3254	0	
+yliL	1	rybA-mntS
+b2653	1	ileY
+b0538	3	intD_1, peaD, exoD
+ybfK	1	speF-potE
+b2191	1	yejO
+b0165	2	dapD, yaeI
+b1437	2	hicAB_1, hicAB_2
+b0017	1	insL1
+sraF	3	alx_1, alx_2, alx_3
+yjgW	1	yjgX
+b1364	7	trkG_1, trkG_2, trkG_3, ynaK-ydaY_1, ynaK-ydaY_2, ynaK-ydaY_3, ynaK-ydaY_4
+b3975	0	
+ycdF	1	ymdF
+b3004	2	exbD, exbBD
+b0609	2	rnk_1, rnk_2
+ybhU	1	uvrB_2
+b2596	1	raiAZ
+b0309	1	ykgEFG
+fruL	0	
+b1903	1	yecJ_1
+b0100	2	yacG, coaE-zapD-yacG
+b0701	1	rhsC-ybfB_1
+b1367	0	
+tisA	1	tisB
+bhsB	2	bhsA_1, bhsA_2
+ykfO	1	gloB_1
+ynfQ	1	ynfN_1
+yshB	0	
+ftsO	4	ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC_1, rsmH-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, mraZW-ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC, ftsLI-murEF-mraY-murD-ftsW-murGC-ddlB-ftsQAZ-lpxC_2
+ascrp	3	crp_1, crp_2, crp_3
+rbsZ	1	rbsDACBKR
+uhpU	2	ade, uhpT
+timP	1	ryfA_1
+yoaK	0	
+asompR	5	ompR-envZ_1, ompR-envZ_2, ompR-envZ_3, ompR-envZ_4, greB_2
+evgL	2	evgAS_1, evgAS_2
+yqiD	0	
+ymgK	0	
+ytgB	3	pepA_1, pepA_2, pepA_3
+yqfH	3	idi_1, idi_2, idi_3
+ykiD	1	ykiA
+yriA	0	
+yncP	1	hokB
+ynfR	2	ynfN_1, ynfN_2
+yddY	0	
+ynaL	0	
+yhgO	0	
+ychT	1	ychE_1
+ykgV	4	yagN_1, yagN_2, yagN_3, yagN_4
+ytcA	0	
+ybjH	0	
+ythB	2	nanCMS, nanS_1
+yqgH	0	
+ybgV	2	gltA_1, gltA_2
+yrhD	0	
+aaaD	2	nohD, tfaD
+ysaC	0	
+baxL	2	bax_1, bax_2
+yoaL	1	yoaE
+argL	2	argF, argF-xynR_1
+ykfN	0	
+psaA	0	
+spfP	1	spf
+ypeD	1	mntH
+yoeG	0	
+pmrR	1	basRS
+yidD	3	rpmH-rnpA_1, rpmH-rnpA_2, rpmH-rnpA_3
+yjhY	0	
+pawZ	0	
+yibU	0	
+ykfK	0	
+oweE	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP
+ysaD	0	
+ykgP	0	
+yrdE	0	
+kilS	0	
+ymgN	1	pliG
+ylbI	0	
+yeeH	0	
+yjhZ	0	
+yoeD	1	yoeF
+yicT	1	yicJI
+ykgQ	0	
+aaaE	1	ymfTLMNR-beeE-jayE-ymfQ-ycfK-tfaP
+yidC	0	
+asphoP	3	phoPQ_1, phoPQ_2, phoPQ_3
+ytiE	0	
+rng	0	
+ydgU	0	
+yhdE	0	
+yibW	0	
+ykfL	1	yafY-ykfBF-yafX-ykfGH-yafW-ykfI
+yibS	0	
+sokA	0	
+xisD	1	intD_1
+mokA	2	hokA_1, insJ_1
+aceK-int	2	aceBAK, aceK
+ybfI	0	
+ttcC	0	
+yrdF	0	
+yoeH	0	
+cydH	0	
+yjdQ	0	
+ypjI	0	
+dbpA	0	
+yqcG	3	ygcG_1, ygcG_2, queE_1
+ypdK	0	
+yjbT	0	
+insH21	0	
+yodE	0	
+ibsB	1	sibB
+ibsE	1	sibE
+insB9	0	
+ibsA	1	sibA
+ytjE	1	arcA_1
+ftsN	0	
+iroK	2	hcaT_1, hcaR
+insA9	0	
+eyeA	0	
+yrfJ	1	argD
+yifL	1	yifL-dapF-yigA-xerC-yigB
+xylZ	1	xylAB
+ynhH	6	pykF_1, pykF_2, pykF_3, pykF_4, pykF_5, pykF_6
+ytiA	3	yjiML, yjiK_1, yjiK_3
+ykfM	0	
+allZ	1	allR
+zbiJ	1	hcxB
+ymcF	1	ymcE-gnsA_1
+yohP	0	
+ysgD	1	corA
+pssL	1	pssA
+ysdD	1	rpmH-rnpA_3
+ymgL	0	
+ymiB	1	pdeR
+yojO	1	napFDAGHBC
+yibY	4	rfaDFCL_1, rfaDFCL_2, rfaDFCL_3, rfaDFCL_4
+yecV	1	argS
+yqfI	0	
+ymgI	0	
+yaaY	2	rpsT_2, ribF-ileS-lspA-fkpB-ispH
+yriB	0	
+mgtT	2	mgrR, mgtS
+ynfS	0	
+timR	0	
+ylcJ	3	ybcK_1, ybcK_2, ybcK_3
+yobI	2	yebB_1, yebB_2
+ylcH	2	ybcN-ninE-ybcO-rusA-ylcG_1, ybcN-ninE-ybcO-rusA-ylcG_2
+yoaJ	0	
+yhgP	0	
+ymiD	1	pdeR
+yneP	2	ydeM, ydeNM
+yahV	1	pdeL_3
+ythA	0	
+yqhJ	1	yghED
+ybiE	0	
+ynaM	0	
+yacM	0	
+yibV	0	
+ytgA	2	pepA_2, pepA_3
+yfiS	0	
+yadX	1	clcA_1
+ymgM	1	cvrA_1
+ykgS	0	
+ypaB	0	
+yicU	1	yicL
+yoaM	1	nrdAB-yfaE
+yqhI	1	yghX
+ymdG	0	
+ymgJ	0	
+yrdG	2	mscL, arfA
+ytcB	0	
+ysaE	1	hokA_1
+ynfU	0	
+yoeI	1	plaP
+yecU	1	yecF
+yldA	0	
+ynbG	0	
+ylcI	0	
+yhiY	0	
+ynaN	1	zntB
+ykiC	5	yaiP_1, yaiS_1, yaiS_2, yaiS_3, yaiS_4
+yqeL	0	
+ybgU	1	gltA_1
+yibX	4	rfaDFCL_1, rfaDFCL_2, rfaDFCL_3, rfaDFCL_4
+yqiM	2	yqjA-mzrA_1, yqjA-mzrA_2
+yljB	1	clpS
+yncO	1	rhsE-ydcD
+yadW	1	erpA
+yqfG	1	idi_1
+yjbS	0	
+ysdE	0	
+ykiE	1	insA-7_2
+yqgG	3	yqgB_1, yqgB_2, yqgC
+ytiB	1	yaiT
+rzoQ	1	essQ-ydfR-rrrQ-rzpQ
+ygdT	0	
