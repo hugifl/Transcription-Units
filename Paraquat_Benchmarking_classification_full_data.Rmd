@@ -1,0 +1,892 @@
+---
+title: "Paraquat SVM classifier"
+output:
+  html_notebook:
+    df_print: paged
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+    number_sections: yes
+    code_folding: hide
+  github_document:
+    toc: yes
+    toc_depth: 2
+---
+# Libraries
+
+The `recoRdseq` package and dependencies are required for this analysis, and the fantastic `patchwork` package is used for visualization. 
+
+```{r message=FALSE, warning=FALSE}
+if(!require(devtools)){
+  install.packages("devtools")
+}
+library(devtools)
+if(!require(factoextra)){
+  install.packages("factoextra")
+}
+library(factoextra)
+if(!require(recoRdseq)){
+  install_github("plattlab/Transcriptional-Recording", subdir="recoRdseq")
+}
+library(devtools)
+if(!require(ROCR)){
+  install.packages("ROCR")
+}
+library(ROCR)
+if(!require(e1071)){
+  install.packages("e1071")
+}
+library(e1071)
+if(!require(patchwork)){
+  install.packages('patchwork')
+}
+if(!require(ggrepel)){
+  install.packages('ggrepel')
+}
+
+if(!require(ggrepel)){
+  install.packages('dplyr')
+}
+
+if(!require(ggrepel)){
+  install.packages('openxlsx')
+}
+library(openxlsx)
+library(recoRdseq)
+library(patchwork)
+library(stringr)
+library(ggrepel)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(tidyr)
+
+theme_pub<-theme_minimal()+
+theme(legend.position="bottom", legend.justification="center", legend.margin=margin(0,0,0,0),legend.box.margin=margin(-10,-10,-10,-10),plot.title = element_text(hjust = 0.5), legend.spacing.y =  unit(0, 'mm'), legend.box='vertical', legend.key.size = unit(0.1, "cm"),legend.key.width = unit(0.1,"cm"), legend.text=element_text(size=5), text = element_text(size=5), panel.grid.minor = element_blank(), axis.text = element_text(size=5, colour='black'), panel.grid.major = element_line(size = 0.24, colour='gray1', linetype = 2))
+
+custom.config = umap.defaults
+custom.config$random_state = 2
+Fig.Folder <- './'
+```
+
+
+\newline
+  Importing Record-seq data, removing samples with low counts and transforming data using vst (_DESeq2_)
+\newline
+```{r results='hide', message=FALSE, warning=FALSE}
+
+a <- read.xlsx("DesignMatrix_PQ_renamed.xlsx")
+a <- subset(a, Exclude != "yes")
+a <- subset(a, Plasmid.genome != "pMC_0195_waaQ")
+recd <- a
+names(recd)[names(recd) == "Original.file.name"] <- "Sample"
+recd$Sample <- sub("\\.fastq\\.gz$", "", recd$Sample)
+recd <- recd[, c("Sample", "Paraquat", "Gene")]
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+
+b <- read.xlsx("DesignMatrix.xlsx")
+samples_to_exclude <- c('S26', 'S38','S50', 'S62','S74', 'S86', 'S98', 'S110')
+b <- b %>% 
+  filter(!sapply(Sample, function(x) any(sapply(samples_to_exclude, function(y) grepl(y, x)))))
+
+b <- subset(b, Gene != "waaQ")
+b$Sample <- gsub("\\.", "-", b$Sample)
+recd_Masha <- b
+
+```
+
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+samples_to_exclude <- c('S13.bam', 'S25.bam','S37.bam', 'S49.bam','S61.bam', 'S73.bam', 'S85.bam', 'S97.bam','pMC195waaQ','negcntrl1Paraquat_S153')  # 'S57.bam' is 0.01 cyA, S61.bam' is 0.1 cyA
+
+rec<-read.table("./genomeCounts_full.txt", header = TRUE, sep='\t') 
+sample_columns <- grep('cluster', names(rec), value = TRUE)
+
+# Filter out columns based on patterns and exact matches
+columns_to_keep <- sample_columns[!sapply(samples_to_exclude, function(pattern) grepl(pattern, sample_columns)) %>% rowSums() > 0]
+descriptor_columns <- names(rec)[!grepl('cluster', names(rec))]
+final_columns <- c(descriptor_columns, columns_to_keep)
+rec <- rec[, final_columns]
+
+new_column_names <- sapply(colnames(rec), function(name) {
+  if (grepl('genomeBams.', name)) {
+    name <- sub('.*genomeBams.', '', name)
+  }
+  name <- sub('\\.bam$', '', name)
+  name <- gsub('\\.', '-', name)
+  return(name)
+})
+
+# Assign the new column names back to the data frame
+colnames(rec) <- new_column_names
+
+rec_TU<-read.table("./genomeCounts_TU_full.txt", header = TRUE, sep='\t') 
+rec_TU <- rec_TU[, final_columns]
+colnames(rec_TU) <- new_column_names
+
+
+samples_to_exclude_Masha <- c('S26', 'S38','S50', 'S62','S74', 'S86', 'S98', 'S110','pMC195waaQ') 
+rec_Masha<-read.table("./genomeCounts_Masha.txt", header = TRUE, sep='\t')
+sample_columns_Masha <- grep('alignments', names(rec_Masha), value = TRUE)
+columns_to_keep_Masha <- sample_columns_Masha[!sapply(samples_to_exclude_Masha, function(pattern) grepl(pattern, sample_columns_Masha)) %>% rowSums() > 0]
+descriptor_columns_Masha <- names(rec_Masha)[!grepl('alignments', names(rec_Masha))]
+final_columns_Masha <- c(descriptor_columns_Masha, columns_to_keep_Masha)
+rec_Masha <- rec_Masha[, final_columns_Masha]
+
+new_column_names_Masha <- sapply(colnames(rec_Masha), function(name) {
+  if (grepl('genomeBams.', name)) {
+    name <- sub('.*genomeBams.', '', name)
+  }
+  name <- sub('\\.bam$', '', name)
+  name <- gsub('\\.', '-', name)
+  return(name)
+})
+
+# Assign the new column names back to the data frame
+colnames(rec_Masha) <- new_column_names_Masha
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+#rename rfaD to hldD to be consistent with MG1655 annotations required for subset_by_gene function
+recd <- recd %>%
+  mutate(Gene = recode(Gene,
+                       "control453" = "cntrl.pFS453",
+                       "control1113" = "cntrl.pFS1113",
+                       "rfaD" = "hldD"))
+
+recd_Masha <- recd_Masha %>%
+  mutate(Gene = recode(Gene,
+                       "control453" = "cntrl.pFS453",
+                       "control1113" = "cntrl.pFS1113",
+                       "rfaD" = "hldD"))
+
+recd_TU <- recd
+
+DEList<-recoRdseq.preprocess(rec, recd)
+rec_all<-DEList[[1]]
+rec_all<-rec_all[-which(rownames(rec_all)%in%c("hemN", "cyaA", "hldD", "yceQ")),]
+recd_all<-DEList[[2]]
+
+DEList_TU<-recoRdseq.preprocess(rec_TU, recd_TU)
+rec_all_TU<-DEList_TU[[1]]
+rec_all_TU<-rec_all_TU[-which(rownames(rec_all_TU)%in%c("hemN", "cyaA_1", "cyaA_2", "cyaA_3", "rfaDFCL_1", "rfaDFCL_2", "rfaDFCL_3", "rfaDFCL_4", "yceQ_1")),]            # for TU V1
+#rec_all_TU<-rec_all_TU[-which(rownames(rec_all_TU)%in%c("hemN", "cyaA", "rfaDFCL", "yceQ")),]        # for TU V2
+recd_all_TU<-DEList_TU[[2]]
+
+DEList_Masha<-recoRdseq.preprocess(rec_Masha, recd_Masha)
+rec_all_Masha<-DEList_Masha[[1]]
+rec_all_Masha<-rec_all_Masha[-which(rownames(rec_all_Masha)%in%c("hemN", "cyaA", "hldD", "yceQ")),]
+recd_all_Masha<-DEList_Masha[[2]]
+
+colnames(rec_all)[42:109] == colnames(rec_all_TU)[43:110]
+print("aalalala")
+
+```
+
+```{r results='hide', message=FALSE, warning=FALSE}
+rec_sums <- colSums(rec[,7:ncol(rec)])
+rec_masha_sums <- colSums(rec_Masha[,7:ncol(rec_Masha)])
+
+sum(rec_sums)
+sum(rec_masha_sums)
+
+(sum(rec_sums)-sum(rec_masha_sums))/(sum(rec_masha_sums)/100)
+```
+
+
+
+## Hierarchical clustering
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+## Gene Based Counting
+gene = 'cntrl.pFS1113'
+rec_heatmaps<-list()
+rec_hierarchical_clusters<-list()
+rec_hierarchical_accuracy<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA<-list()
+recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+recd$Paraquat<-as.character(recd$Paraquat)
+rec <- rec_all[,rownames(recd)]
+rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+o<-order(rowSds(as.matrix(rec_tf)), decreasing = T)
+dheatmap<-as.data.frame(t(apply(rec_tf[o[1:50],], 1,zscorestandardize)))
+rec_heatmaps[[gene]]<-pheatmap(dheatmap,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd,  main = paste0("gene ", gene, " hierarchical clustering of top 50 variable genes"))
+rec_concordance<-table(recd[,1],cutree(rec_heatmaps[[gene]]$tree_col, k = 2))
+majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+names(majority.labels)<-colnames(rec_concordance)
+rec_hierarchical_clusters[[gene]]<- sapply(cutree(rec_heatmaps[[gene]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+rec_hierarchical_accuracy[gene]<-mean(rec_hierarchical_clusters[[gene]]==recd$Paraquat)
+rec_hierarchical_accuracy
+mean(rec_hierarchical_accuracy)
+```
+```{r message=FALSE, warning=FALSE, dpi=300}
+## TU Based Counting
+TU= 'cyaA'
+rec_heatmaps_TU<-list()
+rec_hierarchical_clusters_TU<-list()
+rec_hierarchical_accuracy_TU<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA_TU<-list()
+recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+rec_TU <- rec_all_TU[,rownames(recd_TU)]
+rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+o<-order(rowSds(as.matrix(rec_tf_TU)), decreasing = T)
+dheatmap_TU<-as.data.frame(t(apply(rec_tf_TU[o[1:300],], 1,zscorestandardize)))
+rec_heatmaps_TU[[TU]]<-pheatmap(dheatmap_TU,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_TU,  main = paste0("TU ", TU, " hierarchical clustering of top 50 variable TUs"))
+rec_concordance_TU<-table(recd_TU[,1],cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2))
+majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+names(majority.labels)<-colnames(rec_concordance_TU)
+rec_hierarchical_clusters_TU[[TU]]<- sapply(cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+rec_hierarchical_accuracy_TU[TU]<-mean(rec_hierarchical_clusters_TU[[TU]]==recd_TU$Paraquat)
+majority.labels
+rec_hierarchical_accuracy_TU
+```
+```{r message=FALSE, warning=FALSE, dpi=300}
+rec_heatmaps_TU[[TU]]<-pheatmap(dheatmap_TU,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_TU,  main = paste0("TU ", TU, " hierarchical clustering of top 50 variable TUs"))
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+## TU Based Counting
+TU= 'cyaA'
+rec_heatmaps_TU<-list()
+rec_hierarchical_clusters_TU<-list()
+rec_hierarchical_accuracy_TU<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA_TU<-list()
+recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+rec_TU <- rec_all_TU[,rownames(recd_TU)]
+rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+o<-order(rowSds(as.matrix(rec_tf_TU)), decreasing = T)
+dheatmap_TU<-as.data.frame(t(apply(rec_tf_TU[o[1:300],], 1,zscorestandardize)))
+rec_heatmaps_TU[[TU]]<-pheatmap(dheatmap_TU,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_TU,  main = paste0("TU ", TU, " hierarchical clustering of top 50 variable TUs"))
+rec_concordance_TU<-table(recd_TU[,1],cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2))
+majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+names(majority.labels)<-colnames(rec_concordance_TU)
+rec_hierarchical_clusters_TU[[TU]]<- sapply(cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+rec_hierarchical_accuracy_TU[TU]<-mean(rec_hierarchical_clusters_TU[[TU]]==recd_TU$Paraquat)
+
+rec_hierarchical_accuracy_TU
+```
+```{r message=FALSE, warning=FALSE, dpi=300}
+rec_heatmaps_Masha<-list()
+rec_hierarchical_clusters_Masha<-list()
+rec_hierarchical_accuracy_Masha<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA_Masha<-list()
+recd_Masha <- recd_all_Masha[recd_all_Masha$Gene == gene & recd_all_Masha$Paraquat %in% c(0, 0.1), , drop = FALSE]
+#recd_Masha <- recd_all_Masha[recd_all_Masha$Gene == gene, , drop = FALSE]
+recd_Masha$Paraquat<-as.character(recd_Masha$Paraquat)
+rec_Masha <- rec_all_Masha[,rownames(recd_Masha)]
+rec_tf_Masha <- recoRdseq.transform(rec_Masha, recd_Masha, transformation = "vst") # vst
+rec_PCA_Masha[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf_Masha))$x), recd_Masha)
+o_Masha<-order(rowSds(as.matrix(rec_tf_Masha)), decreasing = T)
+dheatmap_Masha<-as.data.frame(t(apply(rec_tf_Masha[o_Masha[1:50],], 1,zscorestandardize)))
+rec_heatmaps_Masha[[gene]]<-pheatmap(dheatmap_Masha,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_Masha,  main = paste0("gene ", gene, " hierarchical clustering of top 50 variable genes"))
+rec_concordance_Masha<-table(recd_Masha[,1],cutree(rec_heatmaps_Masha[[gene]]$tree_col, k = 2))
+majority.labels_Masha<-rownames(rec_concordance_Masha)[apply(rec_concordance_Masha, 2, which.max)]
+names(majority.labels_Masha)<-colnames(rec_concordance_Masha)
+rec_hierarchical_clusters_Masha[[gene]]<- sapply(cutree(rec_heatmaps_Masha[[gene]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels_Masha[which(names(majority.labels_Masha)==x)]))
+rec_hierarchical_accuracy_Masha[gene]<-mean(rec_hierarchical_clusters_Masha[[gene]]==recd_Masha$Paraquat)
+gene_accuracies_Masha[[gene]] <- c(gene_accuracies_Masha[[gene]], rec_hierarchical_accuracy_Masha[gene])
+  
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+## Gene Based Counting
+rec_heatmaps<-list()
+rec_hierarchical_clusters<-list()
+rec_hierarchical_accuracy<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA<-list()
+for(gene in unique(recd_all$Gene)){
+  recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+  recd$Paraquat<-as.character(recd$Paraquat)
+  rec <- rec_all[,rownames(recd)]
+  rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+  rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+  o<-order(rowSds(as.matrix(rec_tf)), decreasing = T)
+  dheatmap<-as.data.frame(t(apply(rec_tf[o[1:300],], 1,zscorestandardize)))
+  rec_heatmaps[[gene]]<-pheatmap(dheatmap,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd,  main = paste0("gene ", gene, " hierarchical clustering of top 50 variable genes"))
+  rec_concordance<-table(recd[,1],cutree(rec_heatmaps[[gene]]$tree_col, k = 2))
+  majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+  names(majority.labels)<-colnames(rec_concordance)
+ rec_hierarchical_clusters[[gene]]<- sapply(cutree(rec_heatmaps[[gene]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+ rec_hierarchical_accuracy[gene]<-mean(rec_hierarchical_clusters[[gene]]==recd$Paraquat)
+}
+```
+
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+## TU Based Counting
+rec_heatmaps_TU<-list()
+rec_hierarchical_clusters_TU<-list()
+rec_hierarchical_accuracy_TU<-c()
+cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+rec_PCA_TU<-list()
+for(TU in unique(recd_all_TU$Gene)){
+  recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+  recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+  rec_TU <- rec_all_TU[,rownames(recd_TU)]
+  rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+  rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+  o<-order(rowSds(as.matrix(rec_tf_TU)), decreasing = T)
+  dheatmap_TU<-as.data.frame(t(apply(rec_tf_TU[o[1:300],], 1,zscorestandardize)))
+  rec_heatmaps_TU[[TU]]<-pheatmap(dheatmap_TU,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_TU,  main = paste0("TU ", TU, " hierarchical clustering of top 50 variable TUs"))
+  rec_concordance_TU<-table(recd_TU[,1],cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2))
+  majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+  names(majority.labels)<-colnames(rec_concordance_TU)
+ rec_hierarchical_clusters_TU[[TU]]<- sapply(cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+ rec_hierarchical_accuracy_TU[TU]<-mean(rec_hierarchical_clusters_TU[[TU]]==recd_TU$Paraquat)
+}
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+
+n_genes_array <- c(2,5,10,seq(20, 400, by = 25)) # c(seq(20, 400, by = 10))
+TU_better_vector <- c()
+gene_better_vector <- c()
+ngene_vector <- c()
+TU_avg_accuracies <- c()
+gene_avg_accuracies <- c()
+gene_avg_accuracies_Masha <- c()
+
+unique_genes <- unique(recd_all$Gene)
+gene_accuracies <- vector("list", length(unique_genes))
+TU_accuracies <- vector("list", length(unique_genes)) 
+gene_accuracies_Masha <- vector("list", length(unique_genes)) 
+names(gene_accuracies) <- unique_genes
+names(TU_accuracies) <- unique_genes
+names(gene_accuracies_Masha) <- unique_genes
+
+
+
+for (n_idx in seq_along(n_genes_array)) {
+  n_genes <- n_genes_array[n_idx]
+  rec_heatmaps_TU<-list()
+  rec_hierarchical_clusters_TU<-list()
+  rec_hierarchical_accuracy_TU<-c()
+  cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+  rec_PCA_TU<-list()
+  for(TU in unique(recd_all_TU$Gene)){
+    recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd_TU <- recd_all_TU[recd_all_TU$Gene == TU, , drop = FALSE]
+    #recd_TU$Paraquat <- ifelse(recd_TU$Paraquat != 0, "yes", "no")
+    recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+    rec_TU <- rec_all_TU[,rownames(recd_TU)]
+    rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+    rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+    o<-order(rowSds(as.matrix(rec_tf_TU)), decreasing = T)
+    dheatmap_TU<-as.data.frame(t(apply(rec_tf_TU[o[1:n_genes],], 1,zscorestandardize)))
+    rec_heatmaps_TU[[TU]]<-pheatmap(dheatmap_TU,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_TU,  main = paste0("TU ", TU, " hierarchical clustering of top 50 variable TUs"))
+    rec_concordance_TU<-table(recd_TU[,1],cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2))
+    majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+    names(majority.labels)<-colnames(rec_concordance_TU)
+   rec_hierarchical_clusters_TU[[TU]]<- sapply(cutree(rec_heatmaps_TU[[TU]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+   rec_hierarchical_accuracy_TU[TU]<-mean(rec_hierarchical_clusters_TU[[TU]]==recd_TU$Paraquat)
+   TU_accuracies[[TU]] <- c(TU_accuracies[[TU]], rec_hierarchical_accuracy_TU[TU])
+  }
+  
+  ## Gene Based Counting
+  rec_heatmaps<-list()
+  rec_hierarchical_clusters<-list()
+  rec_hierarchical_accuracy<-c()
+  cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+  rec_PCA<-list()
+  for(gene in unique(recd_all$Gene)){
+    recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd <- recd_all[recd_all$Gene == gene, , drop = FALSE]
+    #recd$Paraquat <- ifelse(recd$Paraquat != 0, "yes", "no")
+    recd$Paraquat<-as.character(recd$Paraquat)
+    rec <- rec_all[,rownames(recd)]
+    rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+    rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+    o<-order(rowSds(as.matrix(rec_tf)), decreasing = T)
+    dheatmap<-as.data.frame(t(apply(rec_tf[o[1:n_genes],], 1,zscorestandardize)))
+    rec_heatmaps[[gene]]<-pheatmap(dheatmap,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd,  main = paste0("gene ", gene, " hierarchical clustering of top 50 variable genes"))
+    rec_concordance<-table(recd[,1],cutree(rec_heatmaps[[gene]]$tree_col, k = 2))
+    majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+    names(majority.labels)<-colnames(rec_concordance)
+   rec_hierarchical_clusters[[gene]]<- sapply(cutree(rec_heatmaps[[gene]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+   rec_hierarchical_accuracy[gene]<-mean(rec_hierarchical_clusters[[gene]]==recd$Paraquat)
+   gene_accuracies[[gene]] <- c(gene_accuracies[[gene]], rec_hierarchical_accuracy[gene])
+  }
+  
+  ## Masha Gene Based Counting
+  rec_heatmaps_Masha<-list()
+  rec_hierarchical_clusters_Masha<-list()
+  rec_hierarchical_accuracy_Masha<-c()
+  cols<- colorRampPalette(c("dodgerblue4", "white","violetred4"))(256)
+  rec_PCA_Masha<-list()
+  for(gene in unique(recd_all_Masha$Gene)){
+    recd_Masha <- recd_all_Masha[recd_all_Masha$Gene == gene & recd_all_Masha$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd_Masha <- recd_all_Masha[recd_all_Masha$Gene == gene, , drop = FALSE]
+    recd_Masha$Paraquat<-as.character(recd_Masha$Paraquat)
+    rec_Masha <- rec_all_Masha[,rownames(recd_Masha)]
+    rec_tf_Masha <- recoRdseq.transform(rec_Masha, recd_Masha, transformation = "vst") # vst
+    rec_PCA_Masha[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf_Masha))$x), recd_Masha)
+    o_Masha<-order(rowSds(as.matrix(rec_tf_Masha)), decreasing = T)
+    dheatmap_Masha<-as.data.frame(t(apply(rec_tf_Masha[o_Masha[1:n_genes],], 1,zscorestandardize)))
+    rec_heatmaps_Masha[[gene]]<-pheatmap(dheatmap_Masha,color = cols, show_rownames = F, show_colnames = F, annotation_col = recd_Masha,  main = paste0("gene ", gene, " hierarchical clustering of top 50 variable genes"))
+    rec_concordance_Masha<-table(recd_Masha[,1],cutree(rec_heatmaps_Masha[[gene]]$tree_col, k = 2))
+    majority.labels_Masha<-rownames(rec_concordance_Masha)[apply(rec_concordance_Masha, 2, which.max)]
+    names(majority.labels_Masha)<-colnames(rec_concordance_Masha)
+   rec_hierarchical_clusters_Masha[[gene]]<- sapply(cutree(rec_heatmaps_Masha[[gene]]$tree_col, k = 2), FUN=function(x) as.character(majority.labels_Masha[which(names(majority.labels_Masha)==x)]))
+   rec_hierarchical_accuracy_Masha[gene]<-mean(rec_hierarchical_clusters_Masha[[gene]]==recd_Masha$Paraquat)
+   gene_accuracies_Masha[[gene]] <- c(gene_accuracies_Masha[[gene]], rec_hierarchical_accuracy_Masha[gene])
+  }
+  
+  
+  TU_better <- sum(rec_hierarchical_accuracy < rec_hierarchical_accuracy_TU)
+  gene_better <- sum(rec_hierarchical_accuracy > rec_hierarchical_accuracy_TU)
+  equal <- sum(rec_hierarchical_accuracy == rec_hierarchical_accuracy_TU)
+  print("iteration")
+  TU_better_vector <- c(TU_better_vector, TU_better)
+  gene_better_vector <- c(gene_better_vector, gene_better)
+  ngene_vector <- c(ngene_vector,n_genes)
+  TU_avg_accuracies <- c(TU_avg_accuracies, mean(rec_hierarchical_accuracy_TU))
+  gene_avg_accuracies <- c(gene_avg_accuracies, mean(rec_hierarchical_accuracy))
+  gene_avg_accuracies_Masha <- c(gene_avg_accuracies_Masha, mean(rec_hierarchical_accuracy_Masha))
+}
+  
+
+```
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+accuracy_data <- data.frame()
+
+for (gene in unique_genes) {
+  # Assuming the lengths of ngene_vector and accuracies for each gene are the same
+  gene_data <- data.frame(ngene = ngene_vector,
+                          Accuracy = unlist(gene_accuracies[[gene]]),
+                          Gene = gene,
+                          Method = "Gene-based updated pipeline")
+  
+  TU_data <- data.frame(ngene = ngene_vector,
+                        Accuracy = unlist(TU_accuracies[[gene]]),
+                        Gene = gene,
+                        Method = "TU-based updated pipeline")
+  
+  gene_data_Masha <- data.frame(ngene = ngene_vector,
+                          Accuracy = unlist(gene_accuracies_Masha[[gene]]),
+                          Gene = gene,
+                          Method = "Gene-based current pipeline")
+  
+  # Combine and add to the main data frame
+  accuracy_data <- rbind(accuracy_data, gene_data, TU_data, gene_data_Masha)
+}
+
+# Convert Method to a factor for consistent line types
+accuracy_data$Method <- as.factor(accuracy_data$Method)
+
+
+# Plot with subplots for each gene
+p <- ggplot(accuracy_data, aes(x = ngene, y = Accuracy, color = Method, shape = Method, linetype = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of most variable features used", y = "Accuracy", title = "Accuracy by Method for Each Gene") +
+  scale_color_manual(values = c("Gene-based updated pipeline" = "magenta", "TU-based updated pipeline" = "black",  "Gene-based current pipeline" = "#104E8B"))+
+  scale_linetype_manual(values = c("Gene-based updated pipeline" = "solid", "TU-based updated pipeline" = "solid",  "Gene-based current pipeline" = "dashed")) +
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "right", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "hierarchical_accuracy_allgroups_full_corrected_Masha_cyAcorr_0.01_new", ".png")
+png(file = file.name, width = 1700 , height = 700, units = "px", pointsize = 13, res = 175)
+print(p)
+dev.off()
+
+
+p <- ggplot(accuracy_data[accuracy_data$Method != 'TU-based updated pipeline', ], aes(x = ngene, y = Accuracy, color = Method, shape = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of most variable features used", y = "Accuracy", title = "Accuracy by Method for Each Gene") +
+  scale_color_manual(values = c("Gene-based updated pipeline" = "magenta",  "Gene-based current pipeline" = "black")) +
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "bottom", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "hierarchical_accuracy_allgroups_full_corrected_Masha_gene_cyAcorr_0.01_new", ".png")
+png(file = file.name, width = 1000 , height = 700, units = "px", pointsize = 13, res = 175)
+print(p)
+dev.off()
+
+p <- ggplot(accuracy_data[accuracy_data$Method != 'Gene-based updated pipeline', ], aes(x = ngene, y = Accuracy, color = Method, shape = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of most variable features used", y = "Accuracy", title = "Accuracy by Method for Each Gene") +
+  scale_color_manual(values = c("TU-based updated pipeline" = "magenta",  "Gene-based current pipeline" = "black")) +
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "bottom", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "hierarchical_accuracy_allgroups_full_corrected_Masha_TU_cyAcorr_0.01_new", ".png")
+png(file = file.name, width = 1000 , height = 700, units = "px", pointsize = 13, res = 175)
+print(p)
+dev.off()
+
+
+#
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+df <- data.frame(ngene_vector, TU_avg_accuracies, gene_avg_accuracies)
+
+# Convert from wide to long format
+df_long <- pivot_longer(df, cols = c("TU_avg_accuracies", "gene_avg_accuracies"), names_to = "variable", values_to = "value")
+
+# Plot using ggplot2
+ggplot(df_long, aes(x = ngene_vector, y = value, color = variable)) +
+  geom_point() + 
+  geom_line() +  
+  theme_minimal() +
+  labs(x = "Number of most variable genes used", y = "Average accuracy across plasmids", title = "Hierarchical clustering accuracy 0.01 Paraquat vs. control") +
+  scale_color_manual(values = c("TU_avg_accuracies" = "#104E8B", "gene_avg_accuracies" = "magenta")) +
+  ylim(0.5,1)
+```
+
+## Kmeans clustering
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+n_PCs_array <- c(seq(1, 8, by = 1))
+nPCs_vector <- c()
+TU_accuracies_kmeans <- c()
+gene_accuracies_kmeans <- c()
+gene_accuracies_kmeans_Masha <- c()
+
+unique_genes <- unique(recd_all$Gene)
+gene_accuracies_kmeans <- vector("list", length(unique_genes))
+gene_accuracies_kmeans_Masha <- vector("list", length(unique_genes))
+TU_accuracies_kmeans <- vector("list", length(unique_genes)) 
+names(gene_accuracies_kmeans) <- unique_genes
+names(TU_accuracies_kmeans) <- unique_genes
+names(gene_accuracies_kmeans_Masha) <- unique_genes
+
+TU_avg_accuracies_kmeans <- c()
+gene_avg_accuracies_kmeans <- c()
+gene_avg_accuracies_kmeans_Masha <- c()
+
+for (n_idx in seq_along(n_PCs_array)) {
+  n_PCs <- n_PCs_array[n_idx]
+  rec_kmeans_clusters<-list()
+  rec_kmeans_accuracy<-c()
+  rec_PCA_plots<-list()
+  rec_PCA<-list()
+  for(gene in unique(recd_all$Gene)){
+    recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd <- recd_all[recd_all$Gene==gene, 1, drop=F]
+    #recd$Paraquat <- ifelse(recd$Paraquat != 0, "yes", "no")
+    recd$Paraquat<-as.character(recd$Paraquat)
+    rec <- rec_all[,rownames(recd)]
+    rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+    rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+    nPCs <- ncol(rec_tf)
+    clusters<-pam(rec_PCA[[gene]][,1:n_PCs], 2)$cluster  #change number of clusters
+    rec_concordance<-table(recd[,1], clusters)
+    majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+    names(majority.labels)<-colnames(rec_concordance)
+    rec_kmeans_clusters[[gene]]<- sapply(clusters, FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+   rec_kmeans_accuracy[gene]<-mean(rec_kmeans_clusters[[gene]]==recd$Paraquat)
+   rec_PCA[[gene]]$kmeans_cluster<-rec_kmeans_clusters[[gene]]
+   rec_PCA_plots[[gene]]<-ggplot(rec_PCA[[gene]], aes(x=PC1, y=PC2, colour=Paraquat, shape=kmeans_cluster))+geom_point(size=2)+theme_pub+plot_annotation()
+   gene_accuracies_kmeans[[gene]] <- c(gene_accuracies_kmeans[[gene]], rec_kmeans_accuracy[gene])
+   
+  }
+  
+  rec_kmeans_clusters_Masha<-list()
+  rec_kmeans_accuracy_Masha<-c()
+  rec_PCA_plots_Masha<-list()
+  rec_PCA_Masha<-list()
+  for(gene in unique(recd_all_Masha$Gene)){
+    recd_Masha <- recd_all_Masha[recd_all_Masha$Gene == gene & recd_all_Masha$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd_Masha <- recd_all_Masha[recd_all_Masha$Gene==gene, 1, drop=F]
+    recd_Masha$Paraquat<-as.character(recd_Masha$Paraquat)
+    rec_Masha <- rec_all_Masha[,rownames(recd_Masha)]
+    rec_tf_Masha <- recoRdseq.transform(rec_Masha, recd_Masha, transformation = "vst") # vst
+    rec_PCA_Masha[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf_Masha))$x), recd_Masha)
+    nPCs <- ncol(rec_tf_Masha)
+    clusters_Masha<-pam(rec_PCA_Masha[[gene]][,1:n_PCs], 2)$cluster  #change number of clusters
+    rec_concordance_Masha<-table(recd_Masha[,1], clusters_Masha)
+    majority.labels_Masha<-rownames(rec_concordance_Masha)[apply(rec_concordance_Masha, 2, which.max)]
+    names(majority.labels_Masha)<-colnames(rec_concordance_Masha)
+    rec_kmeans_clusters_Masha[[gene]]<- sapply(clusters_Masha, FUN=function(x) as.character(majority.labels_Masha[which(names(majority.labels_Masha)==x)]))
+   rec_kmeans_accuracy_Masha[gene]<-mean(rec_kmeans_clusters_Masha[[gene]]==recd_Masha$Paraquat)
+   rec_PCA_Masha[[gene]]$kmeans_cluster<-rec_kmeans_clusters_Masha[[gene]]
+   rec_PCA_plots_Masha[[gene]]<-ggplot(rec_PCA_Masha[[gene]], aes(x=PC1, y=PC2, colour=Paraquat, shape=kmeans_cluster))+geom_point(size=2)+theme_pub+plot_annotation()
+   gene_accuracies_kmeans_Masha[[gene]] <- c(gene_accuracies_kmeans_Masha[[gene]], rec_kmeans_accuracy_Masha[gene])
+   
+  }
+
+  rec_kmeans_clusters_TU<-list()
+  rec_kmeans_accuracy_TU<-c()
+  rec_PCA_plots_TU<-list()
+  rec_PCA_TU<-list()
+  for(TU in unique(recd_all_TU$Gene)){
+    #recd_TU <- recd_all_TU[recd_all_TU$Gene==TU, 1, drop=F]
+    recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+    #recd_TU$Paraquat <- ifelse(recd_TU$Paraquat != 0, "yes", "no")
+    recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+    rec_TU <- rec_all_TU[,rownames(recd_TU)]
+    rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+    rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+    nPCs <- ncol(rec_tf)
+    clusters_TU<-pam(rec_PCA_TU[[TU]][,1:n_PCs], 2)$cluster   #change number of clusters
+    rec_concordance_TU<-table(recd_TU[,1], clusters_TU)
+    majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+    names(majority.labels)<-colnames(rec_concordance_TU)
+    rec_kmeans_clusters_TU[[TU]]<- sapply(clusters_TU, FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+   rec_kmeans_accuracy_TU[TU]<-mean(rec_kmeans_clusters_TU[[TU]]==recd_TU$Paraquat)
+   rec_PCA_TU[[TU]]$kmeans_cluster_TU<-rec_kmeans_clusters_TU[[TU]]
+   rec_PCA_plots_TU[[TU]]<-ggplot(rec_PCA_TU[[TU]], aes(x=PC1, y=PC2, colour=Paraquat,shape=kmeans_cluster_TU))+geom_point(size=2)+theme_pub+plot_annotation()
+   TU_accuracies_kmeans[[TU]] <- c(TU_accuracies_kmeans[[TU]], rec_kmeans_accuracy_TU[TU])
+   
+  }
+  TU_avg_accuracies_kmeans <- c(TU_avg_accuracies_kmeans, mean(rec_kmeans_accuracy_TU))
+  gene_avg_accuracies_kmeans <- c(gene_avg_accuracies_kmeans, mean(rec_kmeans_accuracy))
+  gene_avg_accuracies_kmeans_Masha <- c(gene_avg_accuracies_kmeans_Masha, mean(rec_kmeans_accuracy_Masha))
+}
+  
+```
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+accuracy_data_kmeans <- data.frame()
+nPCA_vector <- c(1,2,3,4,5,6,7,8)
+for (gene in unique_genes) {
+  gene_data_kmeans <- data.frame(nPCs = nPCA_vector,
+                          Accuracy = unlist(gene_accuracies_kmeans[[gene]]),
+                          Gene = gene,
+                          Method = "Gene-based updated pipeline")
+  
+  TU_data_kmeans <- data.frame(nPCs = nPCA_vector,
+                        Accuracy = unlist(TU_accuracies_kmeans[[gene]]),
+                        Gene = gene,
+                        Method = "TU-based updated pipeline")
+  
+  gene_data_kmeans_Masha <- data.frame(nPCs = nPCA_vector,
+                          Accuracy = unlist(gene_accuracies_kmeans_Masha[[gene]]),
+                          Gene = gene,
+                          Method = "Gene-based current pipeline")
+  
+  # Combine and add to the main data frame
+  accuracy_data_kmeans <- rbind(accuracy_data_kmeans, gene_data_kmeans, TU_data_kmeans, gene_data_kmeans_Masha)
+}
+
+# Convert Method to a factor for consistent line types
+accuracy_data_kmeans$Method <- as.factor(accuracy_data_kmeans$Method)
+
+
+
+# Plot with subplots for each gene
+plot <- ggplot(accuracy_data_kmeans, aes(x = nPCs, y = Accuracy, color = Method, shape = Method, linetype = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of PCs used", y = "Accuracy", title = "Accuracy by Method for Each Gene")  +
+  scale_color_manual(values = c("Gene-based updated pipeline" = "magenta", "TU-based updated pipeline" = "black",  "Gene-based current pipeline" = "#104E8B"))+
+  scale_linetype_manual(values = c("Gene-based updated pipeline" = "solid", "TU-based updated pipeline" = "solid",  "Gene-based current pipeline" = "dashed"))+
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "right", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "kmedoids_accuracy_allgroups_full_corrected_Masha_cyacorr_0.01_new", ".png")
+png(file = file.name, width = 1700 , height = 700, units = "px", pointsize = 13, res = 175)
+print(plot)
+dev.off()
+
+plot <- ggplot(accuracy_data_kmeans[accuracy_data_kmeans$Method != 'TU-based updated pipeline', ], aes(x = nPCs, y = Accuracy, color= Method, shape = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of PCs used", y = "Accuracy", title = "Accuracy by Method for Each Gene") +
+  scale_color_manual(values = c("Gene-based updated pipeline" = "magenta", "Gene-based current pipeline" = "black")) +
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "bottom", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "kmedoids_accuracy_allgroups_full_corrected_Masha_gene_cyacorr_0.01_new", ".png")
+png(file = file.name, width = 1000 , height = 700, units = "px", pointsize = 13, res = 175)
+print(plot)
+dev.off()
+
+plot <- ggplot(accuracy_data_kmeans[accuracy_data_kmeans$Method != 'Gene-based updated pipeline', ], aes(x = nPCs, y = Accuracy, color= Method, shape = Method)) +
+  geom_point() +
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Number of PCs used", y = "Accuracy", title = "Accuracy by Method for Each Gene") +
+  scale_color_manual(values = c("TU-based updated pipeline" = "magenta", "Gene-based current pipeline" = "black")) +
+  facet_wrap(~ Gene, scales = "free_y") +  # Use 'facet_wrap' to create a subplot for each gene
+  theme(legend.position = "bottom", strip.background = element_blank(), strip.text.x = element_text(size = 10)) +
+  ylim(0.5,1)
+
+file.name <- paste0(Fig.Folder,
+                    "kmedoids_accuracy_allgroups_full_corrected_Masha_TU_cyacorr_0.01_new", ".png")
+png(file = file.name, width = 1000 , height = 700, units = "px", pointsize = 13, res = 175)
+print(plot)
+dev.off()
+
+
+#
+
+```
+
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+nPCA_vector <- c(1,2,3,4,5,6,7,8)
+df_kmeans <- data.frame(nPCA_vector, TU_avg_accuracies_kmeans, gene_avg_accuracies_kmeans)
+TU_avg_accuracies
+# Convert from wide to long format
+df_long_kmeans <- pivot_longer(df_kmeans, cols = c("TU_avg_accuracies_kmeans", "gene_avg_accuracies_kmeans"), names_to = "variable", values_to = "value")
+
+# Plot using ggplot2
+ggplot(df_long_kmeans, aes(x = nPCA_vector, y = value, color = variable)) +
+  geom_point() + 
+  geom_line() +  
+  theme_minimal() +
+  labs(x = "nPCs", y = "Average accuracy across plasmids", title = "Hierarchical clustering accuracy 0.01 Paraquat vs. control") +
+  scale_color_manual(values = c("TU_avg_accuracies_kmeans" = "#104E8B", "gene_avg_accuracies_kmeans" = "magenta")) +
+  ylim(0.5,1)
+```
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+# Gene based counting
+rec_kmeans_clusters<-list()
+rec_kmeans_accuracy<-c()
+rec_PCA_plots<-list()
+rec_PCA<-list()
+gene = 'cntrl.pFS1113'
+recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+#recd <- recd_all[recd_all$Gene==gene, 1, drop=F]
+recd$Paraquat<-as.character(recd$Paraquat)
+rec <- rec_all[,rownames(recd)]
+rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+nPCs <- ncol(rec_tf)
+clusters<-pam(rec_PCA[[gene]][,1:2], 2)$cluster
+rec_concordance<-table(recd[,1], clusters)
+majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+names(majority.labels)<-colnames(rec_concordance)
+rec_kmeans_clusters[[gene]]<- sapply(clusters, FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+rec_kmeans_accuracy[gene]<-mean(rec_kmeans_clusters[[gene]]==recd$Paraquat)
+rec_PCA[[gene]]$kmeans_cluster<-rec_kmeans_clusters[[gene]]
+rec_PCA_plots[[gene]]<-ggplot(rec_PCA[[gene]], aes(x=PC1, y=PC2, colour=Paraquat, shape=kmeans_cluster))+geom_point(size=2)+theme_pub+plot_annotation()
+
+rec_PCA_plots
+
+
+```
+
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+# Gene based counting
+rec_kmeans_clusters<-list()
+rec_kmeans_accuracy<-c()
+rec_PCA_plots<-list()
+rec_PCA<-list()
+for(gene in unique(recd_all$Gene)){
+  recd <- recd_all[recd_all$Gene == gene & recd_all$Paraquat %in% c(0, 0.01), , drop = FALSE]
+  #recd <- recd_all[recd_all$Gene==gene, 1, drop=F]
+  recd$Paraquat<-as.character(recd$Paraquat)
+  rec <- rec_all[,rownames(recd)]
+  rec_tf <- recoRdseq.transform(rec, recd, transformation = "vst") # vst
+  rec_PCA[[gene]] <- cbind(as.data.frame(prcomp(t(rec_tf))$x), recd)
+  nPCs <- ncol(rec_tf)
+  clusters<-pam(rec_PCA[[gene]][,1:8], 2)$cluster
+  rec_concordance<-table(recd[,1], clusters)
+  majority.labels<-rownames(rec_concordance)[apply(rec_concordance, 2, which.max)]
+  names(majority.labels)<-colnames(rec_concordance)
+  rec_kmeans_clusters[[gene]]<- sapply(clusters, FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+ rec_kmeans_accuracy[gene]<-mean(rec_kmeans_clusters[[gene]]==recd$Paraquat)
+ rec_PCA[[gene]]$kmeans_cluster<-rec_kmeans_clusters[[gene]]
+ rec_PCA_plots[[gene]]<-ggplot(rec_PCA[[gene]], aes(x=PC1, y=PC2, colour=Paraquat, shape=kmeans_cluster))+geom_point(size=2)+theme_pub+plot_annotation()
+ 
+}
+rec_PCA_plots[[1]]+rec_PCA_plots[[2]]+rec_PCA_plots[[3]]+rec_PCA_plots[[4]]+rec_PCA_plots[[5]]+rec_PCA_plots[[6]]+plot_layout(nrow = 2)
+
+rec_PCA[[gene]]
+
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+# TU based counting
+rec_kmeans_clusters_TU<-list()
+rec_kmeans_accuracy_TU<-c()
+rec_PCA_plots_TU<-list()
+rec_PCA_TU<-list()
+for(TU in unique(recd_all_TU$Gene)){
+  #recd_TU <- recd_all_TU[recd_all_TU$Gene==TU, 1, drop=F]
+  recd_TU <- recd_all_TU[recd_all_TU$Gene == TU & recd_all_TU$Paraquat %in% c(0, 0.01), , drop = FALSE]
+  recd_TU$Paraquat<-as.character(recd_TU$Paraquat)
+  rec_TU <- rec_all_TU[,rownames(recd_TU)]
+  rec_tf_TU <- recoRdseq.transform(rec_TU, recd_TU, transformation = "vst")
+  rec_PCA_TU[[TU]] <- cbind(as.data.frame(prcomp(t(rec_tf_TU))$x), recd_TU)
+  nPCs <- ncol(rec_tf)
+  clusters_TU<-pam(rec_PCA_TU[[TU]][,1:8], 2)$cluster
+  rec_concordance_TU<-table(recd_TU[,1], clusters_TU)
+  majority.labels<-rownames(rec_concordance_TU)[apply(rec_concordance_TU, 2, which.max)]
+  names(majority.labels)<-colnames(rec_concordance_TU)
+  rec_kmeans_clusters_TU[[TU]]<- sapply(clusters_TU, FUN=function(x) as.character(majority.labels[which(names(majority.labels)==x)]))
+ rec_kmeans_accuracy_TU[TU]<-mean(rec_kmeans_clusters_TU[[TU]]==recd_TU$Paraquat)
+ rec_PCA_TU[[TU]]$kmeans_cluster_TU<-rec_kmeans_clusters_TU[[TU]]
+ rec_PCA_plots_TU[[TU]]<-ggplot(rec_PCA_TU[[TU]], aes(x=PC1, y=PC2, colour=Paraquat,shape=kmeans_cluster_TU))+geom_point(size=2)+theme_pub+plot_annotation()
+ 
+}
+rec_PCA_plots_TU[[1]]+rec_PCA_plots_TU[[2]]+rec_PCA_plots_TU[[3]]+rec_PCA_plots_TU[[4]]+rec_PCA_plots_TU[[5]]+rec_PCA_plots_TU[[6]]+plot_layout(nrow = 2)
+
+```
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+print("k-medoids (gene based) accuracy:")
+rec_kmeans_accuracy
+```
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+print("k-medoids (TU based) accuracy:")
+rec_kmeans_accuracy_TU
+```
+
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+print("Hierarchical clustering (gene based): accuracy")
+rec_hierarchical_accuracy
+```
+
+
+
+```{r message=FALSE, warning=FALSE, dpi=300}
+print("Hierarchical clustering (TU based): accuracy")
+rec_hierarchical_accuracy_TU
+
+
+```
+
+
+# Information about R session
+```{r message=FALSE, warning=FALSE}
+sessionInfo()
+```
